@@ -329,37 +329,67 @@ function initContactForm() {
 
   if (!form) return;
 
+  // 👇 GANTI dengan endpoint Formspree kamu
+  const FORMSPREE_ENDPOINT = 'https://formspree.io/f/mdawwpla';
+
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    /* Basic validation */
     const nameEl = document.getElementById('contact-name');
     const emailEl = document.getElementById('contact-email');
     const msgEl = document.getElementById('contact-message');
 
+    // Validasi
     let valid = true;
     [nameEl, emailEl, msgEl].forEach(el => el?.classList.remove('error'));
 
-    if (!nameEl?.value.trim()) { nameEl?.classList.add('error'); valid = false; }
+    if (!nameEl?.value.trim()) {
+      nameEl?.classList.add('error'); valid = false;
+    }
     if (!emailEl?.value.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailEl.value)) {
       emailEl?.classList.add('error'); valid = false;
     }
-    if (!msgEl?.value.trim()) { msgEl?.classList.add('error'); valid = false; }
+    if (!msgEl?.value.trim()) {
+      msgEl?.classList.add('error'); valid = false;
+    }
 
     if (!valid) {
-      showStatus('Please fill in all required fields correctly.', 'error');
+      showStatus('⚠️ Please fill in all required fields correctly.', 'error');
       return;
     }
 
-    /* Simulate send (no backend) */
+    // Loading state
     if (submitBtn) submitBtn.disabled = true;
     if (submitText) submitText.textContent = 'Sending...';
 
-    await new Promise(r => setTimeout(r, 1200));
+    try {
+      const response = await fetch(FORMSPREE_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify({
+          name: nameEl.value.trim(),
+          email: emailEl.value.trim(),
+          message: msgEl.value.trim()
+        })
+      });
 
-    showStatus('✅ Thank you for your message! I\'ll get back to you soon.', 'success');
-    form.reset();
+      if (response.ok) {
+        showStatus('✅ Thank you for your message! I\'ll get back to you soon.', 'success');
+        form.reset();
+      } else {
+        const data = await response.json();
+        throw new Error(data?.error || 'Server error');
+      }
 
+    } catch (err) {
+      console.error('Form error:', err);
+      showStatus('❌ Failed to send. Please try again or contact us directly via email.', 'error');
+    }
+
+    // Reset button
     if (submitBtn) submitBtn.disabled = false;
     if (submitText) submitText.textContent = 'Send Message';
   });
@@ -369,9 +399,7 @@ function initContactForm() {
     statusEl.textContent = msg;
     statusEl.className = `form-status ${type}`;
     statusEl.classList.remove('hidden');
-    setTimeout(() => {
-      statusEl.classList.add('hidden');
-    }, 5000);
+    setTimeout(() => statusEl.classList.add('hidden'), 6000);
   }
 }
 
